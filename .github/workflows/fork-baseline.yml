@@ -89,11 +89,12 @@ jobs:
           BENCHMARK_DURATION_SECONDS: '3'
           BENCHMARK_SETTLE_SECONDS: '1'
           BENCHMARK_PROFILE: '720p30'
-          BENCHMARK_CODEC_MODE: 'vp8'
+          BENCHMARK_CODEC_MODE: 'auto'
           BENCHMARK_OUTPUT: build/fork-media/room-video.json
         run: npx --no-install tsx scripts/peer-assisted-benchmark.ts
 
       - name: Verify Piik product WebRTC video and synthetic audio
+        if: ${{ !cancelled() }}
         run: |
           npx --no-install tsx scripts/browser-local-pool-probe.ts carrier --av --single
           node scripts/fork-av-assert.mjs
