@@ -2563,17 +2563,18 @@ async function startHost(
     "host controls",
     signal,
   );
+  // Source/quality controls now live behind the advanced settings door.
+  await evaluate(
+    cdp,
+    page,
+    `(() => {
+      const advanced = document.querySelector('button[aria-controls="host-advanced-door"]');
+      if (!(advanced instanceof HTMLButtonElement)) throw new Error('Advanced settings button missing');
+      advanced.click();
+      return true;
+    })()`,
+  );
   if (codecMode !== "auto") {
-    await evaluate(
-      cdp,
-      page,
-      `(() => {
-        const advanced = document.querySelector('button[aria-controls="host-advanced-door"]');
-        if (!(advanced instanceof HTMLButtonElement)) throw new Error('Advanced settings button missing');
-        advanced.click();
-        return true;
-      })()`,
-    );
     await waitForPage(
       cdp,
       page,
@@ -2609,6 +2610,25 @@ async function startHost(
       if (!(start instanceof HTMLButtonElement)) throw new Error('Start button missing');
       globalThis.__PIIK_BENCHMARK__.markShareRequested();
       start.click();
+      return true;
+    })()`,
+  );
+  // Start opens a source picker; the Browser option initiates capture.
+  await waitForPage(
+    cdp,
+    page,
+    "document.querySelector('.lr-source-picker button.lr-source-option.is-browser:not(:disabled)')",
+    5_000,
+    "browser capture source picker",
+    signal,
+  );
+  await evaluate(
+    cdp,
+    page,
+    `(() => {
+      const browser = document.querySelector('.lr-source-picker button.lr-source-option.is-browser:not(:disabled)');
+      if (!(browser instanceof HTMLButtonElement)) throw new Error('Browser capture button missing');
+      browser.click();
       return true;
     })()`,
   );
