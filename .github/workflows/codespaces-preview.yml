@@ -1,0 +1,50 @@
+name: Piik Codespaces HTTPS preview check
+
+on:
+  push:
+    branches:
+      - preview/github-codespaces
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check-codespaces-preview:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Check out preview branch
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.26.6'
+          cache-dependency-path: go.sum
+
+      - name: Validate Codespaces configuration
+        run: |
+          bash -n .devcontainer/build-preview.sh .devcontainer/start-preview.sh
+          node -e "const d=require('./.devcontainer/devcontainer.json');if(!d.forwardPorts.includes(8787))process.exit(1);console.log(d.name)"
+
+      - name: Build Piik exactly as Codespaces will
+        run: bash .devcontainer/build-preview.sh
+
+      - name: Start Piik with simulated Codespaces external origin
+        env:
+          CODESPACES: 'true'
+          CODESPACE_NAME: piik-preview-ci
+          GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN: app.github.dev
+        run: bash .devcontainer/start-preview.sh
+
+      - name: Test HTTPS invitation generation and site password
+        run: node scripts/fork-codespaces-origin-smoke.mjs
