@@ -1,0 +1,88 @@
+name: Piik baseline (fork)
+
+on:
+  push:
+    branches:
+      - build/piik-baseline
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Check out Piik
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build browser UI for embedding
+        run: npm run build:web
+
+      - name: Type-check browser UI
+        run: npm run typecheck
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.26.6'
+          cache-dependency-path: go.sum
+
+      - name: Build Linux server with embedded web UI
+        run: |
+          mkdir -p build
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o build/piik-server ./cmd/piik-server
+          test -s build/piik-server
+          test -s internal/server/webassets/dist/index.html
+
+      - name: Smoke-test server locally (no public deployment)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./build/piik-server --check-config
+          ./build/piik-server > "$RUNNER_TEMP/piik-server.log" 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true; wait "$server_pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:8787/healthz | grep -q '"status":"ok"'; then
+              echo "Piik server health check passed"
+              exit 0
+            fi
+            if ! kill -0 "$server_pid" 2>/dev/null; then
+              cat "$RUNNER_TEMP/piik-server.log"
+              exit 1
+            fi
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/piik-server.log"
+          exit 1
+
+      - name: Package Linux server preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/piik-preview
+          cp build/piik-server build/piik-preview/
+          cp LICENSE build/piik-preview/
+          cp public/third-party-licenses.txt build/piik-preview/
+          tar -czf build/piik-preview-linux-amd64.tar.gz -C build/piik-preview .
+
+      - name: Upload preview artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: piik-preview-linux-amd64
+          path: build/piik-preview-linux-amd64.tar.gz
+          if-no-files-found: error
+          retention-days: 7
