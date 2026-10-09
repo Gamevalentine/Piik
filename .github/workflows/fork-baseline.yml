@@ -70,6 +70,45 @@ jobs:
           cat "$RUNNER_TEMP/piik-server.log"
           exit 1
 
+      - name: Locate Chromium on GitHub runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          for browser in google-chrome google-chrome-stable chromium chromium-browser; do
+            if command -v "$browser" >/dev/null 2>&1; then
+              echo "CHROME_PATH=$(command -v "$browser")" >> "$GITHUB_ENV"
+              exit 0
+            fi
+          done
+          echo "No Chrome/Chromium available on GitHub runner" >&2
+          exit 1
+
+      - name: Verify Piik room video in two real browser pages
+        env:
+          BENCHMARK_VIEWERS: '1'
+          BENCHMARK_DURATION_SECONDS: '3'
+          BENCHMARK_SETTLE_SECONDS: '1'
+          BENCHMARK_PROFILE: '720p30'
+          BENCHMARK_CODEC_MODE: 'vp8'
+          BENCHMARK_OUTPUT: build/fork-media/room-video.json
+        run: npx --no-install tsx scripts/peer-assisted-benchmark.ts
+
+      - name: Verify Piik product WebRTC video and synthetic audio
+        run: |
+          npx --no-install tsx scripts/browser-local-pool-probe.ts carrier --av --single
+          node scripts/fork-av-assert.mjs
+
+      - name: Upload media test evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: piik-fork-media-evidence
+          path: |
+            build/fork-media/room-video.json
+            build/browser-local-pool/*.json
+          if-no-files-found: warn
+          retention-days: 7
+
       - name: Package Linux server preview
         shell: bash
         run: |
