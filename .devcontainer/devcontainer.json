@@ -1,0 +1,25 @@
+{
+  "name": "Piik • browser HTTPS preview",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "24.19.0"
+    },
+    "ghcr.io/devcontainers/features/go:1": {
+      "version": "1.26.6"
+    }
+  },
+  "forwardPorts": [
+    8787
+  ],
+  "portsAttributes": {
+    "8787": {
+      "label": "Piik — HTTPS browser preview",
+      "onAutoForward": "notify",
+      "protocol": "http"
+    }
+  },
+  "postCreateCommand": "bash .devcontainer/build-preview.sh",
+  "postStartCommand": "bash .devcontainer/start-preview.sh",
+  "remoteUser": "vscode"
+}
