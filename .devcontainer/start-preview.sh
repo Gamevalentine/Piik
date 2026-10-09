@@ -57,7 +57,11 @@ app_env=(
   "LISTEN_HOST=0.0.0.0"
   "PORT=$port"
   "PUBLIC_BASE_URL=$public_url"
-  "ALLOWED_ORIGINS=$public_url"
+  # GitHub Codespaces' HTTPS forwarding proxy may rewrite a same-origin
+  # browser POST Origin to http://localhost:8787 before Piik receives it.
+  # Explicitly permit only that loopback origin and the exact public preview
+  # origin. Do not disable Piik's origin validation or add a wildcard.
+  "ALLOWED_ORIGINS=$public_url,http://localhost:$port"
   "SITE_ACCESS_PASSWORD=$password"
   "ROOM_DATABASE_PATH=:memory:"
   "ROOM_EMPTY_TIMEOUT_SECONDS=3600"
