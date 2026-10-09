@@ -58,6 +58,7 @@ jobs:
           for i in $(seq 1 30); do
             if curl --fail --silent http://127.0.0.1:8787/healthz | grep -q '"status":"ok"'; then
               echo "Piik server health check passed"
+              node scripts/fork-room-smoke.mjs
               exit 0
             fi
             if ! kill -0 "$server_pid" 2>/dev/null; then
