@@ -10,6 +10,20 @@
 4. Trong giao diện Codespaces, mở thẻ **PORTS**, tìm **8787 – Piik — HTTPS browser preview**, chọn biểu tượng mở trong trình duyệt. GitHub cung cấp URL dạng `https://<tên-codespace>-8787.app.github.dev`.
 5. Để vào Piik với quyền tạo phòng, mở file **`build/codespaces/host-password.txt`** bằng File Explorer của Codespaces, sao chép mật khẩu và nhập vào trang khi được yêu cầu. Mật khẩu này được tạo tự động và **không được commit lên GitHub**.
 
+## Sửa lỗi 403 do GitHub Codespaces chuyển đổi Origin
+
+Một số yêu cầu POST đến Piik qua địa chỉ `https://<codespace>-8787.app.github.dev` có thể bị GitHub đổi header `Origin` thành `http://localhost:8787`. Piik yêu cầu Origin có trong danh sách cho phép, nên bản cấu hình cũ có thể báo **The server does not allow this address (403)** khi nhập mật khẩu.
+
+Bản cấu hình hiện tại chấp nhận **chính xác hai Origin**: địa chỉ HTTPS của Codespace và `http://localhost:8787` do proxy đổi. Origin khác vẫn bị từ chối; cơ chế xác thực bằng mật khẩu vẫn giữ nguyên.
+
+**Đối với Codespace đã tạo trước khi có bản sửa:**
+
+1. Trong tab GitHub Codespaces đang mở, dùng **Source Control** (biểu tượng nhánh bên trái) → menu **⋯** → **Pull** để lấy commit mới của nhánh `preview/github-codespaces`. Nếu có thay đổi local, kiểm tra trước khi đồng bộ.
+2. Mở menu điều khiển Codespace bằng cách nhấp **Codespaces: <tên>** ở góc trái phía dưới VS Code, rồi chọn **Rebuild Container** (hoặc mở Command Palette và tìm **Codespaces: Rebuild Container**). Không cần sử dụng CMD hoặc PowerShell trên Windows.
+3. Đợi quá trình build + khởi động lại hoàn tất. Mở lại URL ở thẻ **PORTS** và tải lại trang. Thông tin mật khẩu thử nghiệm vẫn ở `build/codespaces/host-password.txt`; không chia sẻ mật khẩu trong ảnh/chát.
+
+Nếu vẫn gặp 403, hãy kiểm tra đường dẫn thực tế trong thẻ PORTS và đảm bảo nó khớp với URL Codespace hiện hành. Không đổi cổng sang HTTPS backend và không tắt bảo mật Origin.
+
 ## Mời thiết bị thứ hai
 
 Theo mặc định, cổng chuyển tiếp GitHub là **Private**, chỉ tài khoản của bạn truy cập được. Để người khác xem (ví dụ điện thoại không đăng nhập GitHub), tại **PORTS**, nhấp chuột phải cổng 8787 → **Port Visibility → Public**. Sau đó mới gửi link mời phòng từ Piik sang thiết bị thứ hai.
