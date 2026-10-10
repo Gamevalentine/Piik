@@ -10,7 +10,7 @@ export function LanguageControl() {
   const menuId = useId();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLSpanElement>(null);
-  const extraLanguages = (Object.keys(locales) as Lang[]).filter((key): boolean => key !== "zh" && key !== "en");
+  const extraLanguages = (Object.keys(locales) as Lang[]).filter((key): boolean => key !== "vi" && key !== "en");
   const selectedExtra = !vis && extraLanguages.includes(lang) ? locales[lang] : null;
 
   useEffect(() => {
@@ -77,7 +77,7 @@ export function LanguageControl() {
 
   return <>
     <span className="lr-lang" role="group" aria-label={t("mode.language")}>
-      {(["zh", "en"] as const).map((key) => (
+      {(["vi", "en"] as const).map((key) => (
         <button
           key={key} type="button" lang={locales[key].tag}
           className={!vis && lang === key ? "is-selected" : ""}
