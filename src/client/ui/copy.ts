@@ -3,7 +3,6 @@ import { useSyncExternalStore } from "react";
 import {
   locales,
   isLang,
-  resolveLang,
   visualTitleFrames,
   type CopyKey,
   type Lang,
@@ -14,7 +13,7 @@ import {
 export type { CopyKey, Lang, TitleFrameKey } from "../locales";
 export type CopyMode = "text" | "vis";
 
-const LANG_STORAGE_KEY = "piik:ui-lang";
+const LANG_STORAGE_KEY = "piik:ui-lang-v2";
 const MODE_STORAGE_KEY = "piik:ui-mode";
 
 interface CopyPrefs {
@@ -38,7 +37,7 @@ function readStored(): Partial<CopyPrefs> {
 const stored = readStored();
 let explicit = Object.keys(stored).length > 0;
 const state: CopyPrefs = {
-  lang: resolveLang(typeof navigator === "undefined" ? undefined : navigator.language),
+  lang: "vi",
   vis: false,
   ...stored,
 };
