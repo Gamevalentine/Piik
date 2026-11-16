@@ -2262,7 +2262,13 @@ function buildBenchmarkInitScript(options: {
         ) return [];
         return connection.getSenders()
           .filter((sender) => sender.track?.kind === "video")
-          .map((sender) => sender.getParameters().degradationPreference ?? null);
+          .map((sender) => ({
+            // A 16px clock carrier must maintain cadence; it is not the real picture.
+            carrier: sender.track?.contentHint === "detail" &&
+              sender.track?.getSettings()?.width === 16 &&
+              sender.track?.getSettings()?.height === 16,
+            preference: sender.getParameters().degradationPreference ?? null,
+          }));
       });
     }
     function sendViewerQualityEvidence(message) {
@@ -2945,7 +2951,9 @@ async function runQualityControlSmoke(
         const predicate = `(() => {
           const values = globalThis.__PIIK_BENCHMARK__.senderDegradationPreferences();
           return values.length === ${expectedCount} &&
-            values.every((value) => value === ${JSON.stringify(preference)});
+            values.every((value) => value.carrier
+              ? value.preference === "maintain-framerate"
+              : value.preference === ${JSON.stringify(preference)});
         })()`;
         await waitForPage(
           cdp,
