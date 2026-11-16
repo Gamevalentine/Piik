@@ -1,0 +1,4 @@
+{$LUNOR_DOMAIN} {
+    encode zstd gzip
+    reverse_proxy lunor-share:8787
+}
