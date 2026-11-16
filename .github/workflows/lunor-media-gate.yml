@@ -1,0 +1,82 @@
+name: LUNOR Share — browser video and audio gate
+
+on:
+  pull_request:
+    branches:
+      - preview/github-codespaces
+    paths:
+      - scripts/peer-assisted-benchmark.ts
+      - src/client/media/**
+      - src/client/webrtc/**
+      - src/client/pages/**
+      - .github/workflows/lunor-media-gate.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  real-webrtc-loopback:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - profile: 720p30
+            viewers: '3'
+            codec: vp8
+            recovery: '3'
+            quality_smoke: 'true'
+          - profile: 1080p30
+            viewers: '2'
+            codec: auto
+            recovery: ''
+            quality_smoke: 'false'
+    env:
+      BENCHMARK_PROFILE: ${{ matrix.profile }}
+      BENCHMARK_VIEWERS: ${{ matrix.viewers }}
+      BENCHMARK_CODEC_MODE: ${{ matrix.codec }}
+      BENCHMARK_AUDIO: 'true'
+      BENCHMARK_RECOVERY_VIEWERS: ${{ matrix.recovery }}
+      BENCHMARK_QUALITY_SMOKE: ${{ matrix.quality_smoke }}
+      BENCHMARK_DURATION_SECONDS: '8'
+      BENCHMARK_SETTLE_SECONDS: '5'
+      BENCHMARK_SAMPLE_INTERVAL_MS: '1500'
+      BENCHMARK_CONNECTION_TIMEOUT_SECONDS: '40'
+      BENCHMARK_RECOVERY_TIMEOUT_SECONDS: '30'
+      BENCHMARK_CHROME_NO_SANDBOX: 'true'
+      BENCHMARK_OUTPUT: benchmark-results/lunor-${{ matrix.profile }}.json
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.26.6'
+          cache-dependency-path: go.sum
+      - name: Locate Chromium
+        shell: bash
+        run: |
+          browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$browser" ]; then echo "::error::A Chromium browser is required"; exit 1; fi
+          echo "CHROME_PATH=$browser" >> "$GITHUB_ENV"
+          "$browser" --version
+      - name: Install Node dependencies
+        run: npm ci
+      - name: Check benchmark TypeScript
+        run: npm run typecheck
+      - name: Exercise real video + Opus, quality changes, and route recovery
+        run: npx tsx scripts/peer-assisted-benchmark.ts
+      - name: Save bounded loopback evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lunor-media-${{ matrix.profile }}
+          path: benchmark-results/lunor-${{ matrix.profile }}.json
+          if-no-files-found: ignore
+          retention-days: 7

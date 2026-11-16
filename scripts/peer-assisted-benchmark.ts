@@ -68,6 +68,7 @@ interface BenchmarkConfig {
   expectedEndpointCap: number;
   profileId: ProfileId;
   codecMode: BenchmarkCodecMode;
+  audio: boolean;
   durationMs: number;
   settleMs: number;
   sampleIntervalMs: number;
@@ -247,7 +248,7 @@ interface BenchmarkReport {
     width: number;
     height: number;
     frameRate: number;
-    audio: false;
+    audio: boolean;
   };
   limitations: string[];
   runs: BenchmarkRun[];
@@ -645,6 +646,7 @@ function parseBenchmarkConfig(
     ),
     profileId,
     codecMode: parseBenchmarkCodecMode(environment.BENCHMARK_CODEC_MODE),
+    audio: parseBoolean(environment.BENCHMARK_AUDIO, false, "BENCHMARK_AUDIO"),
     durationMs:
       parseNumber(
         environment.BENCHMARK_DURATION_SECONDS,
@@ -1677,6 +1679,7 @@ function buildBenchmarkInitScript(options: {
   height: number;
   frameRate: number;
   expectedEndpointCap: number;
+  audio?: boolean;
 }): string {
   const serialized = JSON.stringify(options);
   return `(() => {
@@ -2010,7 +2013,7 @@ function buildBenchmarkInitScript(options: {
     });
 
     let syntheticStream = null;
-    function createSyntheticStream() {
+    async function createSyntheticStream() {
       if (syntheticStream && syntheticStream.getVideoTracks().some((track) => track.readyState === "live")) {
         return syntheticStream;
       }
@@ -2043,6 +2046,27 @@ function buildBenchmarkInitScript(options: {
       draw();
       const timer = setInterval(draw, 1000 / options.frameRate);
       syntheticStream = canvas.captureStream(options.frameRate);
+      if (options.audio) {
+        // Exercise real Opus delivery as well as video across a relay and its recovery.
+        // This is synthetic source audio, never a microphone permission request.
+        const context = new AudioContext();
+        const oscillator = context.createOscillator();
+        const output = context.createMediaStreamDestination();
+        oscillator.frequency.value = 440;
+        oscillator.connect(output);
+        oscillator.start();
+        await context.resume();
+        const audioTrack = output.stream.getAudioTracks()[0];
+        if (!audioTrack) throw new Error("Synthetic audio track unavailable");
+        const stopAudio = audioTrack.stop.bind(audioTrack);
+        audioTrack.stop = () => {
+          if (audioTrack.readyState === "ended") return;
+          oscillator.stop();
+          void context.close();
+          stopAudio();
+        };
+        syntheticStream.addTrack(audioTrack);
+      }
       const track = syntheticStream.getVideoTracks()[0];
       if (track) track.addEventListener("ended", () => clearInterval(timer), { once: true });
       return syntheticStream;
@@ -2213,18 +2237,40 @@ function buildBenchmarkInitScript(options: {
       };
     }
 
+    async function audioEnergy() {
+      let energy = 0;
+      for (const { connection } of networkConnections()) {
+        if (connection.connectionState !== "connected") continue;
+        const report = await connection.getStats();
+        report.forEach((record) => {
+          if (record.type === "inbound-rtp" && record.kind === "audio" &&
+              Number.isFinite(record.totalAudioEnergy) && record.totalAudioEnergy > 0) {
+            energy += record.totalAudioEnergy;
+          }
+        });
+      }
+      return energy;
+    }
     function canarySnapshot() {
       return { ...canary, connectionCount: connections.length, maxActiveOutboundMediaEdges: state.maxActiveOutboundMediaEdges };
     }
     function senderDegradationPreferences() {
-      return connections.flatMap(({ connection }) => {
+      // Baseline counts *network edges* only. Internal local encoder producers
+      // are separate RTCPeerConnections and must not inflate those counts.
+      return networkConnections().flatMap(({ connection }) => {
         if (
           connection.connectionState === "closed" ||
           connection.connectionState === "failed"
         ) return [];
         return connection.getSenders()
           .filter((sender) => sender.track?.kind === "video")
-          .map((sender) => sender.getParameters().degradationPreference ?? null);
+          .map((sender) => ({
+            // A 16px clock carrier must maintain cadence; it is not the real picture.
+            carrier: sender.track?.contentHint === "detail" &&
+              sender.track?.getSettings()?.width === 16 &&
+              sender.track?.getSettings()?.height === 16,
+            preference: sender.getParameters().degradationPreference ?? null,
+          }));
       });
     }
     function sendViewerQualityEvidence(message) {
@@ -2235,7 +2281,7 @@ function buildBenchmarkInitScript(options: {
     }
     Object.defineProperty(globalThis, "__PIIK_BENCHMARK__", {
       configurable: false,
-      value: { sample, progress, snapshot, canarySnapshot, senderDegradationPreferences, sendViewerQualityEvidence, markShareRequested, requestRouteDiagnosticSnapshot, routeDiagnosticTimingSamples, stop: () => clearInterval(videoObserver) },
+      value: { sample, progress, snapshot, audioEnergy, canarySnapshot, senderDegradationPreferences, sendViewerQualityEvidence, markShareRequested, requestRouteDiagnosticSnapshot, routeDiagnosticTimingSamples, stop: () => clearInterval(videoObserver) },
     });
   })();`;
 }
@@ -2907,16 +2953,24 @@ async function runQualityControlSmoke(
         const predicate = `(() => {
           const values = globalThis.__PIIK_BENCHMARK__.senderDegradationPreferences();
           return values.length === ${expectedCount} &&
-            values.every((value) => value === ${JSON.stringify(preference)});
+            values.every((value) => value.carrier
+              ? value.preference === "maintain-framerate"
+              : value.preference === ${JSON.stringify(preference)});
         })()`;
-        await waitForPage(
-          cdp,
-          page,
-          predicate,
-          10_000,
-          `${preference} sender parameter readback`,
-          signal,
-        );
+        try {
+          await waitForPage(
+            cdp,
+            page,
+            predicate,
+            10_000,
+            `${preference} sender parameter readback`,
+            signal,
+          );
+        } catch (error) {
+          const observed = await evaluate<unknown>(cdp, page,
+            "globalThis.__PIIK_BENCHMARK__.senderDegradationPreferences()");
+          throw new Error(`${errorMessage(error)}: expected ${expectedCount} senders; observed ${JSON.stringify(observed)}`);
+        }
         return evaluate<boolean>(cdp, page, `Boolean(${predicate})`);
       }),
     );
@@ -3365,6 +3419,7 @@ async function runCase(
       height: captureResolution.height,
       frameRate: capture.maxFramerate,
       expectedEndpointCap: config.expectedEndpointCap,
+      audio: config.audio,
     };
     const hostPage = await createPage(cdp, baseUrl, {
       ...commonInit,
@@ -3505,6 +3560,18 @@ async function runCase(
         expected: "every viewer decodes and renders frames after both setting changes",
       });
     }
+    if (config.audio) {
+      const audioEnergy = await Promise.all(pages.slice(1).map((page) =>
+        evaluate<number>(cdp, page, "globalThis.__PIIK_BENCHMARK__.audioEnergy()"),
+      ));
+      const audible = audioEnergy.filter((value) => Number.isFinite(value) && value > 0).length;
+      checks.push({
+        name: "all-viewers-received-opus-audio",
+        passed: audible === viewerCount,
+        actual: audible,
+        expected: `${viewerCount} viewers receive positive inbound audio energy, not merely an audio track`,
+      });
+    }
     if (config.recoveryViewerCount === viewerCount) {
       recovery = await runRecovery(
         cdp,
@@ -3514,6 +3581,28 @@ async function runCase(
         signal,
       );
       checks.push(buildRecoveryCheck(recovery, config.expectedEndpointCap));
+      if (config.audio && recovery.recoveredAtEpochMs !== undefined) {
+        // Recovery intentionally closes the relay's browser page. Only the
+        // surviving viewers should be probed after the downstream reassignment.
+        const relayLabel = samples.at(-1)?.pages.find(
+          (page) => page.peerId === recovery.relayPeerId,
+        )?.label;
+        if (!relayLabel) throw new Error("Recovered relay page not found in measured baseline");
+        const survivingViewers = pages.slice(1).filter((page) => page.label !== relayLabel);
+        if (survivingViewers.length !== viewerCount - 1) {
+          throw new Error("Recovery must close exactly one relay viewer");
+        }
+        const recoveredAudio = await Promise.all(survivingViewers.map((page) =>
+          evaluate<number>(cdp, page, "globalThis.__PIIK_BENCHMARK__.audioEnergy()"),
+        ));
+        const audible = recoveredAudio.filter((value) => Number.isFinite(value) && value > 0).length;
+        checks.push({
+          name: "audio-present-after-relay-recovery",
+          passed: audible === survivingViewers.length,
+          actual: audible,
+          expected: `${survivingViewers.length} surviving viewers retain or resume inbound audio after route recovery`,
+        });
+      }
     }
     return {
       viewerCount,
@@ -3679,6 +3768,7 @@ async function main(): Promise<number> {
       expectedEndpointCap: config.expectedEndpointCap,
       profileId: config.profileId,
       codecMode: config.codecMode,
+      audio: config.audio,
       durationMs: config.durationMs,
       settleMs: config.settleMs,
       sampleIntervalMs: config.sampleIntervalMs,
@@ -3697,10 +3787,11 @@ async function main(): Promise<number> {
       width: profileResolution.width,
       height: profileResolution.height,
       frameRate: profile.maxFramerate,
-      audio: false,
+      audio: config.audio,
     },
     limitations: [
-      "Synthetic canvas motion exercises real Chromium WebRTC but is not a game-capture quality claim.",
+      "Synthetic canvas motion and optional 440 Hz source audio exercise real Chromium WebRTC, not a movie's perceptual quality or A/V sync.",
+      "A positive inbound audio-energy counter proves real audio reception; it does not establish audible sound on a physical speaker.",
       "Headless runs are topology and transport evidence, not representative GPU or power evidence.",
       "Timing values never determine this loopback gate's status; the exact 20-Viewer route snapshot and four complete current-child distributions are required without a duration threshold.",
       "CDP process CPU covers the isolated Chromium instance, not a specific Host or relay page; identity changes or counter resets make that interval unknown, and multicore utilization may exceed 100%.",
