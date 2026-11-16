@@ -35,7 +35,8 @@ jobs:
       - name: Build LUNOR fork Go binary and branded Web UI
         run: docker build --progress=plain -f deploy/lunor/Dockerfile -t lunor-share:stage4 .
       - name: Validate production server config
-        run: docker run --rm --env-file deploy/lunor/.env -e ROOM_DATABASE_PATH=:memory: lunor-share:stage4 --check-config
+        run: |
+          docker run --rm --env-file deploy/lunor/.env -e ROOM_DATABASE_PATH=:memory: lunor-share:stage4 --check-config
       - name: Start isolated Go server
         run: |
           docker run -d --rm --name lunor-share-ci -p 127.0.0.1:8787:8787 \
