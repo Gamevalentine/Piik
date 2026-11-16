@@ -1,0 +1,58 @@
+name: LUNOR Share — VPS production build check
+
+on:
+  pull_request:
+    branches:
+      - preview/github-codespaces
+    paths:
+      - deploy/lunor/**
+      - scripts/lunor-hosted-smoke.mjs
+      - .dockerignore
+      - .github/workflows/lunor-vps-check.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  production-image:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Reject missing site password
+        shell: bash
+        run: |
+          cp deploy/lunor/.env.example deploy/lunor/.env
+          if docker compose -f deploy/lunor/compose.yaml config --quiet >/dev/null 2>&1; then
+            echo "::error::Compose must refuse a missing password"
+            exit 1
+          fi
+          sed -i 's/^SITE_ACCESS_PASSWORD=$/SITE_ACCESS_PASSWORD=ci-only-test-secret/' deploy/lunor/.env
+          docker compose -f deploy/lunor/compose.yaml config --quiet
+      - name: Build LUNOR fork Go binary and branded Web UI
+        run: docker build --progress=plain -f deploy/lunor/Dockerfile -t lunor-share:stage4 .
+      - name: Validate production server config
+        run: docker run --rm --env-file deploy/lunor/.env -e ROOM_DATABASE_PATH=:memory: lunor-share:stage4 --check-config
+      - name: Start isolated Go server
+        run: |
+          docker run -d --rm --name lunor-share-ci -p 127.0.0.1:8787:8787 \
+            --env-file deploy/lunor/.env -e ROOM_DATABASE_PATH=:memory: lunor-share:stage4
+          for i in $(seq 1 35); do
+            if curl -fsS http://127.0.0.1:8787/healthz >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          docker logs lunor-share-ci
+          exit 1
+      - name: Test protected Host and HTTPS invite URL
+        env:
+          LUNOR_TEST_PUBLIC_ORIGIN: https://share.toolpick.id.vn
+          LUNOR_TEST_SITE_PASSWORD: ci-only-test-secret
+        run: node scripts/lunor-hosted-smoke.mjs
+      - name: Cleanup
+        if: always()
+        run: |
+          docker logs --tail=25 lunor-share-ci 2>/dev/null || true
+          docker rm -f lunor-share-ci 2>/dev/null || true
