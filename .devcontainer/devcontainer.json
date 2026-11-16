@@ -1,5 +1,5 @@
 {
-  "name": "Piik • browser HTTPS preview",
+  "name": "LUNOR Share • browser HTTPS preview",
   "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
   "features": {
     "ghcr.io/devcontainers/features/node:1": {
@@ -14,7 +14,7 @@
   ],
   "portsAttributes": {
     "8787": {
-      "label": "Piik — HTTPS browser preview",
+      "label": "LUNOR Share — HTTPS browser preview",
       "onAutoForward": "notify",
       "protocol": "http"
     }
