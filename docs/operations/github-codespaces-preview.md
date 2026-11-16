@@ -32,6 +32,16 @@ Theo mặc định, cổng chuyển tiếp GitHub là **Private**, chỉ tài kh
 
 Lưu ý: chọn **Port Visibility → Public**, KHÔNG đổi **Port Protocol** từ HTTP sang HTTPS. Codespaces đã cung cấp HTTPS ở đường dẫn `app.github.dev`; dịch vụ nội bộ vẫn là HTTP trên cổng 8787. Đổi Port Protocol sang HTTPS khi backend chỉ hỗ trợ HTTP sẽ làm kết nối lỗi.
 
+## Kiểm tra truyền phim và âm thanh (giai đoạn 3)
+
+1. Trên **Chrome/Edge máy tính**, mở phòng với quyền Host. Ưu tiên chia sẻ **thẻ trình duyệt đang phát video**, rồi bật lựa chọn **Chia sẻ âm thanh của thẻ** trong hộp thoại trình duyệt. Nếu chọn cả màn hình hoặc cửa sổ, khả năng chia sẻ âm thanh phụ thuộc hệ điều hành và trình duyệt; kiểm tra cảnh báo **không có âm thanh nguồn** trong phòng.
+2. Trong **Chất lượng**, thử **1080p · 30 fps (tối đa 5 Mbps)** trên mạng ổn định. Nếu mạng yếu hoặc nhiều người bị dừng hình, giảm xuống **720p · 30 fps (tối đa 3 Mbps)**. Mốc bitrate chỉ là mức tối đa, WebRTC tự điều chỉnh theo mạng; 1080p không được đảm bảo cho mọi Viewer.
+3. Mời **2 thiết bị ở hai mạng khác nhau** và xác nhận đồng thời: hình có khung hình mới, âm thanh phát đúng và chat còn hoạt động. Trình duyệt có thể chặn âm thanh/phát tự động cho tới khi Viewer bấm **Phát**. Nút **Kết nối lại** chỉ dành cho người xem khi media thật sự mất, không thay thế việc sửa nguồn chia sẻ bị tắt.
+4. Đổi thử chất lượng khi đang phát, sau đó cho một Viewer thoát/vào lại. Không xóa phòng hoặc đổi mật khẩu để giải quyết lỗi truyền media. Nếu vẫn mất hình, tải báo cáo chẩn đoán (chỉ khi chủ động bật) và kiểm tra trạng thái kết nối.
+5. Nội dung có DRM có thể bị màn hình đen hoặc mất tiếng khi chia sẻ. Chỉ dùng video bạn có quyền chia sẻ.
+
+**Giới hạn kiểm chứng:** CI trên GitHub có thể chạy luồng WebRTC video/Opus thực qua Chromium **trên cùng máy kiểm thử** và thử rớt relay. Điều đó không đo được độ trễ đầu-cuối, đồng bộ môi/hình, chất lượng điện thoại hoặc khả năng phát mượt cho 20 người qua Internet. Những xác nhận này thuộc thử nghiệm ngoài đời của giai đoạn 5. Codespaces không mở cổng media UDP, nên không thể coi là máy chủ SFU production.
+
 ## Phạm vi và giới hạn
 
 - Bản test có 1 Host, tối đa **20 người xem/phòng** (theo giới hạn kết nối); nội dung video/âm thanh ưu tiên WebRTC P2P. Việc mở 20 kết nối không đảm bảo 20 người xem phim mượt: cần thử thực tế với nhiều thiết bị và mạng khác nhau.
