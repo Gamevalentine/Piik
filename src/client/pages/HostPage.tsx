@@ -24,6 +24,7 @@ import {
 } from "../../shared/protocol";
 import { browserCaptureDevices } from "../media/capture-devices";
 import { AppHeader, LedStrip } from "../components/living/Header";
+import { LunorCinemaIntro } from "../components/living/LunorCinemaIntro";
 import { WelcomeLine } from "../components/living/WelcomeLine";
 import type { CouchEntry } from "../components/living/Couch";
 import { SharingSettings } from "../components/living/SharingSettings";
@@ -3561,6 +3562,7 @@ export function HostPage({
       />
 
       <main className="lr-room">
+        <LunorCinemaIntro role="host" />
         <h1 className="visually-hidden">
           {t("host.title", { name: hostPresence?.displayName ?? displayName })}
         </h1>
