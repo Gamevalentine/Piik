@@ -136,6 +136,7 @@ export function AppHeader({
         aria-label={t("brand.home")}
       >
         <BrandMark size={34} motion="once" />
+        <span className="lr-brand-name">LUNOR <strong>Share</strong></span>
       </a>
       <span className="lr-top-right">
         {led}
