@@ -1,7 +1,11 @@
-name: Piik Codespaces HTTPS preview check
+name: LUNOR Share Codespaces HTTPS preview check
 
 on:
   push:
+    branches:
+      - preview/github-codespaces
+      - feature/lunor-share-20-viewers
+  pull_request:
     branches:
       - preview/github-codespaces
   workflow_dispatch:
@@ -46,5 +50,5 @@ jobs:
           GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN: app.github.dev
         run: bash .devcontainer/start-preview.sh
 
-      - name: Test HTTPS invitation generation and site password
+      - name: Test HTTPS origin, access, and admission for 20 viewers
         run: node scripts/fork-codespaces-origin-smoke.mjs
