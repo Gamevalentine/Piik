@@ -23,6 +23,7 @@ import {
   viewerRouteEvidence,
 } from "../components/status-badge-model";
 import { AppHeader, LedStrip } from "../components/living/Header";
+import { LunorCinemaIntro } from "../components/living/LunorCinemaIntro";
 import type { CouchEntry } from "../components/living/Couch";
 import { RoomInteractions } from "../components/living/RoomInteractions";
 import { RoomChatOverlay, RoomChatToggle } from "../components/living/RoomChatOverlay";
@@ -2188,6 +2189,7 @@ export function ViewerPage({
         }
       />
       <main className={`lr-room${theaterMode ? " is-theater" : ""}`}>
+        {!theaterMode && <LunorCinemaIntro role="viewer" />}
         <h1 className="visually-hidden">
           {hostDisplayName
             ? t("viewer.title", { name: hostDisplayName })
