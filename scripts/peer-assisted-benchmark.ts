@@ -2955,14 +2955,20 @@ async function runQualityControlSmoke(
               ? value.preference === "maintain-framerate"
               : value.preference === ${JSON.stringify(preference)});
         })()`;
-        await waitForPage(
-          cdp,
-          page,
-          predicate,
-          10_000,
-          `${preference} sender parameter readback`,
-          signal,
-        );
+        try {
+          await waitForPage(
+            cdp,
+            page,
+            predicate,
+            10_000,
+            `${preference} sender parameter readback`,
+            signal,
+          );
+        } catch (error) {
+          const observed = await evaluate<unknown>(cdp, page,
+            "globalThis.__PIIK_BENCHMARK__.senderDegradationPreferences()");
+          throw new Error(`${errorMessage(error)}: expected ${expectedCount} senders; observed ${JSON.stringify(observed)}`);
+        }
         return evaluate<boolean>(cdp, page, `Boolean(${predicate})`);
       }),
     );
