@@ -26,7 +26,7 @@ export const zh = {
   "debug.export": "网页报告",
   "debug.exportHint": "下载网页诊断，可能包含网络地址和设备信息",
   "debug.exportFailed": "诊断下载失败，请重试",
-  "brand.home": "Piik 首页",
+  "brand.home": "LUNOR Share 首页",
 
   "common.roomCode": "房间号",
   "host.roomCodePending": "开始分享后生成房间号",
