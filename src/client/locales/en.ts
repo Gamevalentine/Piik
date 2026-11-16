@@ -26,7 +26,7 @@ export const en: Record<CopyKey, string> = {
   "debug.export": "Web report",
   "debug.exportHint": "Download browser diagnostics; may include network addresses and device details",
   "debug.exportFailed": "Could not download diagnostics; try again",
-  "brand.home": "Piik home",
+  "brand.home": "LUNOR Share home",
 
   "common.roomCode": "Room code",
   "host.roomCodePending": "A room code appears when sharing starts",

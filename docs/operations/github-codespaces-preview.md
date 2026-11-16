@@ -1,4 +1,4 @@
-# Piik: thử nghiệm HTTPS trên GitHub Codespaces
+# LUNOR Share: thử nghiệm HTTPS trên GitHub Codespaces
 
 Đây là **môi trường thử nghiệm tạm thời**, không phải dịch vụ production hoặc hosting 24/7. Mục tiêu: có thể mở Piik trên HTTPS, tạo phòng và thử chia sẻ màn hình trên trình duyệt, hoàn toàn không cần CMD/PowerShell trên Windows.
 
@@ -34,7 +34,7 @@ Lưu ý: chọn **Port Visibility → Public**, KHÔNG đổi **Port Protocol** 
 
 ## Phạm vi và giới hạn
 
-- Bản test có 1 Host, tối đa **2 người xem/phòng**; nội dung video/âm thanh ưu tiên WebRTC P2P.
+- Bản test có 1 Host, tối đa **20 người xem/phòng** (theo giới hạn kết nối); nội dung video/âm thanh ưu tiên WebRTC P2P. Việc mở 20 kết nối không đảm bảo 20 người xem phim mượt: cần thử thực tế với nhiều thiết bị và mạng khác nhau.
 - Dùng máy chủ STUN công khai để giúp tìm đường ngang hàng; **không có TURN/SFU**, nên mạng NAT nghiêm ngặt hoặc bị chặn UDP có thể không xem được.
 - Các cổng UDP của STUN/SFU **không được GitHub Codespaces forward**. GitHub chỉ forward cổng TCP 8787 cho HTTPS/WebSocket, nên không được coi đây là hệ thống sản xuất đủ kết nối mọi loại mạng.
 - Cơ sở dữ liệu phòng dùng **bộ nhớ tiến trình** (`:memory:`), phòng sẽ mất khi Codespace dừng hoặc Piik khởi động lại.

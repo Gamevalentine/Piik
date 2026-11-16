@@ -1,0 +1,21 @@
+/* LUNOR Share identity on top of Piik's responsive room layout. */
+.lr-brand {
+  display: inline-flex;
+  width: auto;
+  gap: 7px;
+  padding: 0 9px;
+  white-space: nowrap;
+}
+.lr-brand-name {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: .035em;
+}
+.lr-brand-name strong {
+  color: var(--action);
+  font-weight: 900;
+}
+@media (max-width: 680px) {
+  .lr-brand { width: 44px; padding: 0; justify-content: center; }
+  .lr-brand-name { display: none; }
+}
