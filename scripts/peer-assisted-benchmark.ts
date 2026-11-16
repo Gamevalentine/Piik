@@ -1679,7 +1679,7 @@ function buildBenchmarkInitScript(options: {
   height: number;
   frameRate: number;
   expectedEndpointCap: number;
-  audio: boolean;
+  audio?: boolean;
 }): string {
   const serialized = JSON.stringify(options);
   return `(() => {
