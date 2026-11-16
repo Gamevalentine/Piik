@@ -2255,7 +2255,9 @@ function buildBenchmarkInitScript(options: {
       return { ...canary, connectionCount: connections.length, maxActiveOutboundMediaEdges: state.maxActiveOutboundMediaEdges };
     }
     function senderDegradationPreferences() {
-      return connections.flatMap(({ connection }) => {
+      // Baseline counts *network edges* only. Internal local encoder producers
+      // are separate RTCPeerConnections and must not inflate those counts.
+      return networkConnections().flatMap(({ connection }) => {
         if (
           connection.connectionState === "closed" ||
           connection.connectionState === "failed"
