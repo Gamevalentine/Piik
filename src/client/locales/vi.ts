@@ -28,7 +28,7 @@ const viCopy: Partial<Record<CopyKey, string>> = {
   "debug.export": "Báo cáo trình duyệt",
   "debug.exportHint": "Tải thông tin chẩn đoán trình duyệt xuống; báo cáo có thể chứa địa chỉ mạng và thông tin thiết bị",
   "debug.exportFailed": "Không thể tải báo cáo chẩn đoán. Vui lòng thử lại.",
-  "brand.home": "Trang chủ Piik",
+  "brand.home": "Trang chủ LUNOR Share",
 
   "common.roomCode": "Mã phòng",
   "host.roomCodePending": "Mã phòng sẽ xuất hiện khi bắt đầu chia sẻ",
