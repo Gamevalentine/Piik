@@ -2,6 +2,8 @@
 
 Đây là cấu hình triển khai VPS **đã chuẩn bị nhưng chưa có máy chủ được cấp phát**. Không coi việc vượt qua GitHub Actions là đã có trang 24/7. Trang Toolpick tại https://toolpick.id.vn/lunor-share là giao diện riêng; khi máy chủ hoạt động, dán địa chỉ HTTPS của máy chủ vào mục kết nối trên Toolpick.
 
+> **Phương án 0đ:** xem [triển khai trên Oracle Cloud Always Free](./lunor-oracle-always-free.md) (2 OCPU / 12 GB ARM trong hạn mức, chỉ chọn Always Free eligible). Tài khoản cloud, xác minh cá nhân và cấp máy thực tế vẫn cần chủ tài khoản thực hiện.
+
 ## Hạ tầng
 
 Yêu cầu VPS Linux x64 hoặc ARM64, Docker Engine + Docker Compose v2, IPv4 công khai, tên miền DNS do bạn sở hữu, và quyền mở cổng UDP. Máy chủ chạy một tiến trình Go chứa UI + signaling + STUN + SFU tùy chọn; Caddy cấp HTTPS/WSS và tự gia hạn TLS; SQLite lưu phòng trên volume Docker. Không dùng image Piik upstream, vì thiếu cập nhật thương hiệu và chức năng của fork.
