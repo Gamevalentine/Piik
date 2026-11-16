@@ -1,0 +1,54 @@
+name: lunor-share
+
+services:
+  lunor-share:
+    build:
+      context: ../..
+      dockerfile: deploy/lunor/Dockerfile
+    image: lunor-share:stage4
+    env_file: .env
+    environment:
+      PIIK_ENV: production
+      LISTEN_HOST: 0.0.0.0
+      PORT: "8787"
+      ROOM_DATABASE_PATH: /home/nonroot/rooms.sqlite
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:?Set HTTPS PUBLIC_BASE_URL in deploy/lunor/.env}
+      STUN_URLS: ${STUN_URLS:?Set a public DNS-only STUN host in deploy/lunor/.env}
+      SITE_ACCESS_PASSWORD: ${SITE_ACCESS_PASSWORD:?Set a unique random SITE_ACCESS_PASSWORD}
+      ROOM_EMPTY_TIMEOUT_SECONDS: "3600"
+      MAX_VIEWERS_PER_ROOM: "20"
+      SFU_ONLY: "false"
+      NAT_PREDICTION_ENABLED: "false"
+    expose:
+      - "8787"
+    ports:
+      - "3478:3478/udp"
+      - "7882:7882/udp"
+    volumes:
+      - rooms:/home/nonroot
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    stop_grace_period: 20s
+
+  caddy:
+    image: caddy:2.10.2-alpine
+    environment:
+      LUNOR_DOMAIN: ${LUNOR_DOMAIN:?Set LUNOR_DOMAIN in deploy/lunor/.env}
+    ports:
+      - "80:80/tcp"
+      - "443:443/tcp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - lunor-share
+    restart: unless-stopped
+
+volumes:
+  rooms:
+  caddy-data:
+  caddy-config:
