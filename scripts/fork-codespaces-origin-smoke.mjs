@@ -65,7 +65,10 @@ assert.ok(grant, "Viewer invitation needs a grant");
 
 const sockets = [];
 async function authenticate(role, clientId) {
-  const socket = new WebSocket("ws://127.0.0.1:8787/signal", { origin: forwardedOrigin });
+  const socket = new WebSocket("ws://127.0.0.1:8787/signal", {
+    origin: forwardedOrigin,
+    ...(role === "host" ? { headers: { Cookie: cookie } } : {}),
+  });
   sockets.push(socket);
   return await new Promise((resolve, reject) => {
     let settled = false;
