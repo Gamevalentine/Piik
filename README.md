@@ -1,3 +1,7 @@
+> **LUNOR Share — bản xem thử tiếng Việt:** tạo phòng riêng, chia sẻ màn hình và âm thanh cho tối đa 20 người xem. [Mở bằng GitHub Codespaces](https://codespaces.new/Gamevalentine/Piik/tree/feature/lunor-share-20-viewers) · [Hướng dẫn](./docs/operations/github-codespaces-preview.md). Đây là cấu hình thử nghiệm, chưa phải dịch vụ online 24/7 và chưa kiểm chứng chất lượng phát phim đủ 20 thiết bị. Dự án phát triển từ Piik (MIT); các đường dẫn Piik phía dưới thuộc dự án nguồn.
+
+---
+
 <p align="center"><img src="./public/favicon.svg" width="64" height="64" alt="Piik mascot"></p>
 <h1 align="center">Piik</h1>
 <p align="center"><strong>Share the good stuff.</strong><br>Private screen sharing for you and up to 20 friends.</p>
