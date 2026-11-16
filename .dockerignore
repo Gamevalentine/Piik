@@ -1,0 +1,21 @@
+# Prevent copying local secrets and machine state into stage-4 image.
+.git
+node_modules
+build
+dist
+coverage
+benchmark-results
+.cache
+.env
+.env.*
+**/.env
+**/.env.*
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.sqlite-journal
+*.key
+*.pem
+*.p12
+*.pfx
+.DS_Store
