@@ -3582,15 +3582,25 @@ async function runCase(
       );
       checks.push(buildRecoveryCheck(recovery, config.expectedEndpointCap));
       if (config.audio && recovery.recoveredAtEpochMs !== undefined) {
-        const recoveredAudio = await Promise.all(pages.slice(1).map((page) =>
+        // Recovery intentionally closes the relay's browser page. Only the
+        // surviving viewers should be probed after the downstream reassignment.
+        const relayLabel = samples.at(-1)?.pages.find(
+          (page) => page.peerId === recovery.relayPeerId,
+        )?.label;
+        if (!relayLabel) throw new Error("Recovered relay page not found in measured baseline");
+        const survivingViewers = pages.slice(1).filter((page) => page.label !== relayLabel);
+        if (survivingViewers.length !== viewerCount - 1) {
+          throw new Error("Recovery must close exactly one relay viewer");
+        }
+        const recoveredAudio = await Promise.all(survivingViewers.map((page) =>
           evaluate<number>(cdp, page, "globalThis.__PIIK_BENCHMARK__.audioEnergy()"),
         ));
         const audible = recoveredAudio.filter((value) => Number.isFinite(value) && value > 0).length;
         checks.push({
           name: "audio-present-after-relay-recovery",
-          passed: audible === viewerCount,
+          passed: audible === survivingViewers.length,
           actual: audible,
-          expected: `${viewerCount} viewers retain or resume inbound audio after route recovery`,
+          expected: `${survivingViewers.length} surviving viewers retain or resume inbound audio after route recovery`,
         });
       }
     }
